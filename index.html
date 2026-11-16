@@ -1,0 +1,1970 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logistik Harian - Catat Resi & Pantau Kinerja</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f4f7fa;
+            color: #1e293b;
+            -webkit-tap-highlight-color: transparent;
+        }
+        /* Custom scrollbar untuk list agar rapi */
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 9999px;
+        }
+        .tab-active {
+            color: #2563eb;
+        }
+        .tab-inactive {
+            color: #64748b;
+        }
+        /* Animasi halus untuk transisi tab & modal */
+        .fade-in {
+            animation: fadeIn 0.2s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="pb-24 min-h-screen flex flex-col">
+
+    <!-- HEADER UTAMA -->
+    <header class="bg-white border-b border-slate-200/80 sticky top-0 z-30 shadow-sm">
+        <div class="max-w-lg mx-auto px-4 py-3.5 flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+                <!-- Ikon Logo -->
+                <button type="button" onclick="toggleFullScreen()" title="Layar Penuh" class="w-11 h-11 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 active:scale-95 transition">
+                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+                </button>
+                <div>
+                    <h1 class="text-lg font-extrabold text-slate-900 leading-tight tracking-tight">Logistik Harian</h1>
+                    <p class="text-[11px] text-slate-500 font-medium leading-snug">Catat resi · Pantau kinerja · Multi-user via Google Sheets</p>
+                </div>
+            </div>
+            <!-- Badge Tanggal Hari Ini -->
+            <div id="header-date-badge" class="px-3 py-1.5 rounded-full bg-blue-50/80 border border-blue-200 text-blue-700 text-xs font-semibold whitespace-nowrap shrink-0">
+                Hari Ini
+            </div>
+        </div>
+    </header>
+
+    <!-- KONTEN UTAMA (Container responsif mobile-first) -->
+    <main class="max-w-lg w-full mx-auto px-4 pt-4 flex-1">
+
+        <!-- ==================== TAB 1: ENTRI ==================== -->
+        <section id="view-entri" class="space-y-4 fade-in">
+            <!-- Form Card Entri Resi -->
+            <div class="bg-white rounded-3xl p-5 shadow-sm border border-slate-200/60">
+                <h2 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-4">ENTRI RESI</h2>
+                
+                <form id="form-entri" class="space-y-4">
+                    <!-- Input Tanggal -->
+                    <div>
+                        <div class="flex items-center justify-between mb-1.5">
+                            <label for="entri-tanggal" class="text-sm font-bold text-slate-800">Tanggal</label>
+                            <span class="text-xs text-slate-400">default hari ini</span>
+                        </div>
+                        <input type="date" id="entri-tanggal" required
+                            class="w-full px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 font-medium text-base focus:outline-none focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition">
+                    </div>
+
+                    <!-- Pilih Packer -->
+                    <div>
+                        <label class="block text-sm font-bold text-slate-800 mb-1.5">Packer</label>
+                        <button type="button" id="btn-select-packer" onclick="openSelectorModal('packer')"
+                            class="w-full px-4 py-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-left text-base font-medium text-slate-700 flex items-center justify-between focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition">
+                            <span id="selected-packer-label">— Pilih Packer —</span>
+                            <svg class="w-4 h-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                        </button>
+                        <input type="hidden" id="entri-packer" required>
+                    </div>
+
+                    <!-- Pilih Expedisi -->
+                    <div>
+                        <label class="block text-sm font-bold text-slate-800 mb-1.5">Expedisi</label>
+                        <button type="button" id="btn-select-expedisi" onclick="openSelectorModal('expedisi')"
+                            class="w-full px-4 py-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-left text-base font-medium text-slate-700 flex items-center justify-between focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition">
+                            <span id="selected-expedisi-label">— Pilih Expedisi —</span>
+                            <svg class="w-4 h-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                        </button>
+                        <input type="hidden" id="entri-expedisi" required>
+                    </div>
+
+                    <!-- Jumlah Resi -->
+                    <div>
+                        <div class="flex items-center justify-between mb-1.5">
+                            <label for="entri-jumlah" class="text-sm font-bold text-slate-800">Jumlah Resi</label>
+                            <span class="text-xs text-slate-400">angka saja</span>
+                        </div>
+                        <input type="number" id="entri-jumlah" min="1" step="1" placeholder="0" inputmode="numeric" required
+                            class="w-full px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 font-semibold text-base focus:outline-none focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition">
+                    </div>
+
+                    <!-- Tombol Simpan Entri -->
+                    <button type="submit" id="btn-submit-entri"
+                        class="w-full py-3.5 px-5 rounded-2xl bg-[#2970a8] hover:bg-[#215b8a] active:scale-[0.99] text-white font-bold text-base shadow-sm flex items-center justify-center gap-2 transition cursor-pointer mt-2">
+                        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        <span>Simpan Entri</span>
+                    </button>
+                </form>
+            </div>
+
+            <!-- 3 Kartu Ringkasan Statistik Harian -->
+            <div class="grid grid-cols-3 gap-2.5">
+                <!-- Total Resi -->
+                <div class="bg-white rounded-2xl p-3.5 shadow-sm border border-slate-200/60 flex flex-col justify-between">
+                    <div id="stat-entri-total" class="text-xl sm:text-2xl font-extrabold text-[#2970a8] tracking-tight truncate">0</div>
+                    <div class="mt-2">
+                        <div class="text-[10px] font-bold uppercase tracking-wider text-slate-500 leading-tight">TOTAL RESI ·</div>
+                        <div id="stat-entri-date-1" class="text-[10px] font-semibold text-slate-400 mt-0.5">--/--/----</div>
+                    </div>
+                </div>
+
+                <!-- Jumlah Entri -->
+                <div class="bg-white rounded-2xl p-3.5 shadow-sm border border-slate-200/60 flex flex-col justify-between">
+                    <div id="stat-entri-count" class="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight truncate">0</div>
+                    <div class="mt-2">
+                        <div class="text-[10px] font-bold uppercase tracking-wider text-slate-500 leading-tight">JUMLAH ENTRI</div>
+                        <div id="stat-entri-date-2" class="text-[10px] font-semibold text-slate-400 mt-0.5">· --/--/----</div>
+                    </div>
+                </div>
+
+                <!-- Rata-Rata -->
+                <div class="bg-white rounded-2xl p-3.5 shadow-sm border border-slate-200/60 flex flex-col justify-between">
+                    <div id="stat-entri-avg" class="text-xl sm:text-2xl font-extrabold text-[#c85a32] tracking-tight truncate">0,0</div>
+                    <div class="mt-2">
+                        <div class="text-[10px] font-bold uppercase tracking-wider text-slate-500 leading-tight">RATA-RATA ·</div>
+                        <div id="stat-entri-date-3" class="text-[10px] font-semibold text-slate-400 mt-0.5">--/--/----</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Daftar Entri pada Tanggal Terpilih -->
+            <div class="bg-white rounded-3xl p-5 shadow-sm border border-slate-200/60">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 id="list-entri-title" class="text-xs font-bold uppercase tracking-wider text-slate-500">ENTRI · --/--/----</h3>
+                    <span id="cloud-sync-indicator" class="inline-flex items-center gap-1.5 text-[11px] font-bold text-slate-600 bg-slate-100 px-2.5 py-0.5 rounded-full border border-slate-200">
+                        <span id="live-dot" class="w-2 h-2 rounded-full bg-slate-400"></span>
+                        <span id="live-label">Lokal</span>
+                    </span>
+                </div>
+                <div id="entri-daily-list" class="divide-y divide-slate-100 max-h-80 overflow-y-auto pr-1">
+                    <div class="py-6 text-center text-sm text-slate-400">Belum ada entri untuk tanggal ini.</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== TAB 2: DATA ==================== -->
+        <section id="view-data" class="space-y-4 hidden fade-in">
+            <!-- Header Jumlah Catatan & Ekspor CSV -->
+            <div class="bg-white rounded-3xl px-5 py-4 shadow-sm border border-slate-200/60 flex items-center justify-between">
+                <div id="data-count-label" class="text-xs font-bold uppercase tracking-wider text-slate-600">
+                    CATATAN (0) dari 0
+                </div>
+                <button type="button" onclick="exportDataCSV()"
+                    class="px-3.5 py-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 active:scale-95 text-slate-700 text-xs font-bold flex items-center gap-1.5 transition cursor-pointer">
+                    <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                    <span>CSV</span>
+                </button>
+            </div>
+
+            <!-- Filter Data -->
+            <div class="bg-white rounded-3xl p-5 shadow-sm border border-slate-200/60">
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label for="filter-dari" class="block text-xs font-bold text-slate-800 mb-1.5">Dari Tanggal</label>
+                        <input type="date" id="filter-dari" onchange="renderDataTab()"
+                            class="w-full px-3 py-2.5 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 font-medium text-sm focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label for="filter-sampai" class="block text-xs font-bold text-slate-800 mb-1.5">Sampai Tanggal</label>
+                        <input type="date" id="filter-sampai" onchange="renderDataTab()"
+                            class="w-full px-3 py-2.5 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 font-medium text-sm focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label for="filter-packer" class="block text-xs font-bold text-slate-800 mb-1.5">Packer</label>
+                        <select id="filter-packer" onchange="renderDataTab()"
+                            class="w-full px-3 py-2.5 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 font-medium text-sm focus:outline-none focus:border-blue-500">
+                            <option value="">— Semua Packer —</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="filter-expedisi" class="block text-xs font-bold text-slate-800 mb-1.5">Expedisi</label>
+                        <select id="filter-expedisi" onchange="renderDataTab()"
+                            class="w-full px-3 py-2.5 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 font-medium text-sm focus:outline-none focus:border-blue-500">
+                            <option value="">— Semua Expedisi —</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Daftar Hasil Filter Data -->
+            <div class="bg-white rounded-3xl p-5 shadow-sm border border-slate-200/60">
+                <div id="data-filtered-list" class="divide-y divide-slate-100 max-h-[55vh] overflow-y-auto pr-1">
+                    <div class="py-8 text-center text-sm text-slate-400">Tidak ada catatan ditemukan.</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== TAB 3: LAPORAN ==================== -->
+        <section id="view-laporan" class="space-y-4 hidden fade-in">
+            <!-- Periode Laporan -->
+            <div class="bg-white rounded-3xl p-5 shadow-sm border border-slate-200/60">
+                <h2 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3.5">PERIODE LAPORAN</h2>
+                <div class="flex flex-wrap gap-2 mb-4" id="laporan-period-buttons">
+                    <button type="button" data-period="today" onclick="setLaporanPeriod('today')"
+                        class="period-btn px-4 py-2 rounded-full text-xs font-bold border border-[#2970a8] text-white bg-[#2970a8] transition cursor-pointer">
+                        Hari Ini
+                    </button>
+                    <button type="button" data-period="7days" onclick="setLaporanPeriod('7days')"
+                        class="period-btn px-4 py-2 rounded-full text-xs font-bold border border-slate-200 text-slate-700 bg-white transition cursor-pointer">
+                        7 Hari
+                    </button>
+                    <button type="button" data-period="thisWeek" onclick="setLaporanPeriod('thisWeek')"
+                        class="period-btn px-4 py-2 rounded-full text-xs font-bold border border-slate-200 text-slate-700 bg-white transition cursor-pointer">
+                        Minggu Ini
+                    </button>
+                    <button type="button" data-period="thisMonth" onclick="setLaporanPeriod('thisMonth')"
+                        class="period-btn px-4 py-2 rounded-full text-xs font-bold border border-slate-200 text-slate-700 bg-white transition cursor-pointer">
+                        Bulan Ini
+                    </button>
+                    <button type="button" data-period="custom" onclick="setLaporanPeriod('custom')"
+                        class="period-btn px-4 py-2 rounded-full text-xs font-bold border border-slate-200 text-slate-700 bg-white transition cursor-pointer">
+                        Custom
+                    </button>
+                </div>
+
+                <!-- Input Custom Date Range (Muncul jika Custom dipilih) -->
+                <div id="laporan-custom-range" class="grid grid-cols-2 gap-2.5 mb-4 hidden">
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-600 mb-1">Dari</label>
+                        <input type="date" id="laporan-dari" onchange="renderLaporanTab()"
+                            class="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-600 mb-1">Sampai</label>
+                        <input type="date" id="laporan-sampai" onchange="renderLaporanTab()"
+                            class="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs font-semibold">
+                    </div>
+                </div>
+
+                <!-- Tombol Ekspor Laporan CSV -->
+                <button type="button" onclick="exportLaporanCSV()"
+                    class="w-full sm:w-auto px-4 py-2.5 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 active:scale-[0.99] text-slate-700 text-xs font-bold flex items-center justify-center gap-2 transition cursor-pointer">
+                    <i data-lucide="download" class="w-4 h-4"></i>
+                    <span>Ekspor Laporan CSV</span>
+                </button>
+            </div>
+
+            <!-- 3 Kartu Ringkasan Laporan -->
+            <div class="grid grid-cols-3 gap-2.5">
+                <div class="bg-white rounded-2xl p-3.5 shadow-sm border border-slate-200/60 flex flex-col justify-between">
+                    <div id="lap-total-resi" class="text-xl sm:text-2xl font-extrabold text-[#2970a8] tracking-tight truncate">0</div>
+                    <div class="text-[10px] font-bold uppercase tracking-wider text-slate-500 mt-2">TOTAL RESI</div>
+                </div>
+                <div class="bg-white rounded-2xl p-3.5 shadow-sm border border-slate-200/60 flex flex-col justify-between">
+                    <div id="lap-total-entri" class="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight truncate">0</div>
+                    <div class="text-[10px] font-bold uppercase tracking-wider text-slate-500 mt-2">JUMLAH ENTRI</div>
+                </div>
+                <div class="bg-white rounded-2xl p-3.5 shadow-sm border border-slate-200/60 flex flex-col justify-between">
+                    <div id="lap-rata-entri" class="text-xl sm:text-2xl font-extrabold text-[#c85a32] tracking-tight truncate">0,0</div>
+                    <div class="text-[10px] font-bold uppercase tracking-wider text-slate-500 mt-2 leading-tight">RATA-RATA/ENTRI</div>
+                </div>
+            </div>
+
+            <!-- Badge Rentang Tanggal Aktif Laporan -->
+            <div class="flex items-center justify-between px-1">
+                <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">RENTANG TANGGAL LAPORAN</span>
+                <span id="laporan-active-date-badge" class="text-xs font-extrabold text-[#2970a8] bg-blue-50 px-3 py-1 rounded-full border border-blue-200/80">--/--/----</span>
+            </div>
+
+            <!-- Grafik Batang Horizontal: RESI PER EXPEDISI -->
+            <div class="bg-white rounded-3xl p-5 shadow-sm border border-slate-200/60">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-4">RESI PER EXPEDISI</h3>
+                <div id="chart-expedisi" class="space-y-4">
+                    <div class="text-sm text-slate-400 text-center py-4">Belum ada data pada periode ini.</div>
+                </div>
+            </div>
+
+            <!-- Grafik Batang Horizontal: RESI PER PACKER -->
+            <div class="bg-white rounded-3xl p-5 shadow-sm border border-slate-200/60">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-4">RESI PER PACKER</h3>
+                <div id="chart-packer" class="space-y-4">
+                    <div class="text-sm text-slate-400 text-center py-4">Belum ada data pada periode ini.</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== TAB 4: MASTER ==================== -->
+        <section id="view-master" class="space-y-4 hidden fade-in">
+            <!-- Kartu Operator (Perangkat Ini) -->
+            <div class="bg-white rounded-3xl p-5 shadow-sm border border-slate-200/60">
+                <h2 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3.5">OPERATOR (PERANGKAT INI)</h2>
+                <div class="flex items-center justify-between mb-1.5">
+                    <label for="input-operator-name" class="text-sm font-bold text-slate-800">Nama Anda</label>
+                    <span class="text-xs text-slate-400">dicatat di setiap entri resi</span>
+                </div>
+                <input type="text" id="input-operator-name" placeholder="Masukkan nama operator..."
+                    class="w-full px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 font-semibold text-base focus:outline-none focus:bg-white focus:border-blue-500 mb-3">
+                <button type="button" onclick="saveOperatorName()"
+                    class="px-4 py-2.5 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 active:scale-[0.99] text-slate-700 text-xs font-bold transition cursor-pointer">
+                    Simpan Nama Operator
+                </button>
+            </div>
+
+            <!-- Kartu Status Cloud Multi-User -->
+            <div class="bg-white rounded-3xl p-5 shadow-sm border border-slate-200/60">
+                <div class="flex items-center justify-between mb-3">
+                    <h2 class="text-xs font-bold uppercase tracking-wider text-slate-500">SINKRONISASI GOOGLE SHEETS (MULTI-USER)</h2>
+                    <button type="button" onclick="openAppsScriptModal()"
+                        class="px-2.5 py-1 rounded-xl bg-blue-50 hover:bg-blue-100 text-[#2970a8] text-[11px] font-bold flex items-center gap-1 transition cursor-pointer">
+                        <i data-lucide="code-2" class="w-3.5 h-3.5"></i>
+                        <span>Lihat Code.gs</span>
+                    </button>
+                </div>
+
+                <div class="flex items-center justify-between mb-1.5">
+                    <label for="input-gas-url" class="text-sm font-bold text-slate-800">URL Web App Google Apps Script</label>
+                    <span class="text-xs text-slate-400">tersimpan di perangkat ini</span>
+                </div>
+                <input type="url" id="input-gas-url" placeholder="https://script.google.com/macros/s/..."
+                    class="w-full px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 font-medium text-sm focus:outline-none focus:bg-white focus:border-blue-500 mb-3">
+
+                <div class="flex flex-wrap gap-2 mb-3.5">
+                    <button type="button" onclick="connectGoogleSheet()"
+                        class="px-4 py-2.5 rounded-2xl bg-[#2970a8] hover:bg-[#215b8a] active:scale-[0.99] text-white text-xs font-bold transition cursor-pointer">
+                        Simpan &amp; Hubungkan
+                    </button>
+                    <button type="button" onclick="forceRefreshCloud()"
+                        class="px-4 py-2.5 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 active:scale-[0.99] text-slate-700 text-xs font-bold transition cursor-pointer">
+                        Sinkronkan Sekarang
+                    </button>
+                    <button type="button" onclick="cleanDuplicateEntries()"
+                        class="px-4 py-2.5 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 active:scale-[0.99] text-slate-700 text-xs font-bold transition cursor-pointer">
+                        Bersihkan Duplikat
+                    </button>
+                    <button type="button" onclick="disconnectGoogleSheet()"
+                        class="px-4 py-2.5 rounded-2xl bg-red-50 hover:bg-red-100 active:scale-[0.99] text-red-600 text-xs font-bold transition cursor-pointer">
+                        Putuskan
+                    </button>
+                </div>
+
+                <div class="flex items-center gap-2 text-xs font-bold text-slate-800 mb-2">
+                    <span id="cloud-dot" class="w-2.5 h-2.5 rounded-full bg-slate-400 shrink-0"></span>
+                    <span id="cloud-status-text">Belum terhubung · data tersimpan lokal di perangkat.</span>
+                    <span id="pending-sync-badge" class="hidden ml-auto px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-bold text-[10px]">0 antrean</span>
+                </div>
+
+                <p class="text-xs text-slate-500 leading-relaxed">
+                    <strong>Cara aktifkan multi-user:</strong> buat Google Sheet &rarr; Extensions &rarr; Apps Script &rarr; tempel kode <button type="button" onclick="openAppsScriptModal()" class="font-bold text-[#2970a8] underline cursor-pointer">Code.gs</button> &rarr; Deploy sebagai Web app (akses: <strong>Anyone</strong>) &rarr; salin URL &rarr; tempel di atas. Data tersimpan permanen di perangkat dan terkirim otomatis; data dari pengguna lain muncul otomatis dalam <strong>&lt;1 menit</strong>. Tekan <strong>Sinkronkan Sekarang</strong> untuk paksa sinkron kapan saja. URL tetap tersimpan meski diputus.
+                </p>
+                <div class="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
+                    <span>Sinkron terakhir: <strong id="last-sync-time" class="text-slate-600">-</strong></span>
+                    <span id="cloud-status-badge" class="font-semibold text-slate-500">Mode Lokal</span>
+                </div>
+            </div>
+
+            <!-- Kartu Master Nama Packer -->
+            <div class="bg-white rounded-3xl p-5 shadow-sm border border-slate-200/60">
+                <div class="flex items-center gap-2 mb-3.5">
+                    <h2 class="text-base font-extrabold text-slate-800">Nama Packer</h2>
+                    <span id="master-packer-count" class="px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 text-xs font-bold">0</span>
+                </div>
+                <form onsubmit="addMasterItem(event, 'packer')" class="flex gap-2 mb-4">
+                    <input type="text" id="new-packer-input" placeholder="Tambah packer baru..." required
+                        class="flex-1 px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-sm font-medium focus:outline-none focus:bg-white focus:border-blue-500 uppercase">
+                    <button type="submit"
+                        class="px-5 py-3 rounded-2xl bg-[#2970a8] hover:bg-[#215b8a] active:scale-95 text-white text-sm font-bold transition cursor-pointer shrink-0">
+                        Tambah
+                    </button>
+                </form>
+                <div id="master-packer-list" class="divide-y divide-slate-100"></div>
+            </div>
+
+            <!-- Kartu Master Nama Expedisi -->
+            <div class="bg-white rounded-3xl p-5 shadow-sm border border-slate-200/60">
+                <div class="flex items-center gap-2 mb-3.5">
+                    <h2 class="text-base font-extrabold text-slate-800">Nama Expedisi</h2>
+                    <span id="master-expedisi-count" class="px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 text-xs font-bold">0</span>
+                </div>
+                <form onsubmit="addMasterItem(event, 'expedisi')" class="flex gap-2 mb-4">
+                    <input type="text" id="new-expedisi-input" placeholder="Tambah expedisi baru..." required
+                        class="flex-1 px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-sm font-medium focus:outline-none focus:bg-white focus:border-blue-500 uppercase">
+                    <button type="submit"
+                        class="px-5 py-3 rounded-2xl bg-[#2970a8] hover:bg-[#215b8a] active:scale-95 text-white text-sm font-bold transition cursor-pointer shrink-0">
+                        Tambah
+                    </button>
+                </form>
+                <div id="master-expedisi-list" class="divide-y divide-slate-100"></div>
+            </div>
+
+            <p class="text-center text-xs text-slate-400 px-4 pb-2 leading-relaxed">
+                Daftar packer & expedisi otomatis urut A–Z. Yang sudah dipakai di catatan tidak bisa dihapus — gunakan edit untuk mengubah nama.
+            </p>
+        </section>
+
+    </main>
+
+    <!-- BOTTOM NAVIGATION BAR -->
+    <nav class="fixed bottom-0 inset-x-0 bg-white border-t border-slate-200/90 z-30 pb-safe">
+        <div class="max-w-lg mx-auto grid grid-cols-4 h-16">
+            <button type="button" onclick="switchTab('entri')" id="nav-entri" class="tab-active flex flex-col items-center justify-center gap-1 cursor-pointer transition">
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+                <span class="text-[11px] font-bold">Entri</span>
+            </button>
+            <button type="button" onclick="switchTab('data')" id="nav-data" class="tab-inactive flex flex-col items-center justify-center gap-1 cursor-pointer transition">
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                <span class="text-[11px] font-bold">Data</span>
+            </button>
+            <button type="button" onclick="switchTab('laporan')" id="nav-laporan" class="tab-inactive flex flex-col items-center justify-center gap-1 cursor-pointer transition">
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                <span class="text-[11px] font-bold">Laporan</span>
+            </button>
+            <button type="button" onclick="switchTab('master')" id="nav-master" class="tab-inactive flex flex-col items-center justify-center gap-1 cursor-pointer transition">
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                <span class="text-[11px] font-bold">Master</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- ==================== MODAL 1: SELECTOR PACKER / EXPEDISI (Tampilan Dark Radio List seperti Gambar) ==================== -->
+    <div id="selector-modal" class="fixed inset-0 bg-black/50 backdrop-blur-[1px] z-50 hidden items-center justify-center p-4" onclick="closeSelectorModal(event)">
+        <div class="bg-[#232329] text-white w-full max-w-md rounded-3xl overflow-hidden shadow-2xl max-h-[82vh] flex flex-col" onclick="event.stopPropagation()">
+            <div id="selector-modal-list" class="divide-y divide-white/10 overflow-y-auto">
+                <!-- Diisi dinamis oleh JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== MODAL 2: EDIT ENTRI RESI ==================== -->
+    <div id="edit-entri-modal" class="fixed inset-0 bg-black/50 backdrop-blur-[1px] z-50 hidden items-center justify-center p-4" onclick="closeEditEntriModal(event)">
+        <div class="bg-white w-full max-w-md rounded-3xl p-5 shadow-2xl space-y-4" onclick="event.stopPropagation()">
+            <div class="flex items-center justify-between">
+                <h3 class="text-base font-extrabold text-slate-900">Edit Catatan Resi</h3>
+                <button type="button" onclick="closeEditEntriModal()" class="p-1.5 rounded-full text-slate-400 hover:bg-slate-100">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <form id="form-edit-entri" class="space-y-3.5">
+                <input type="hidden" id="edit-entri-id">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Tanggal</label>
+                    <input type="date" id="edit-entri-tanggal" required
+                        class="w-full px-3.5 py-2.5 rounded-2xl bg-slate-50 border border-slate-200 text-sm font-semibold">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Packer</label>
+                    <select id="edit-entri-packer" required
+                        class="w-full px-3.5 py-2.5 rounded-2xl bg-slate-50 border border-slate-200 text-sm font-semibold"></select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Expedisi</label>
+                    <select id="edit-entri-expedisi" required
+                        class="w-full px-3.5 py-2.5 rounded-2xl bg-slate-50 border border-slate-200 text-sm font-semibold"></select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Jumlah Resi</label>
+                    <input type="number" id="edit-entri-jumlah" min="1" required
+                        class="w-full px-3.5 py-2.5 rounded-2xl bg-slate-50 border border-slate-200 text-sm font-bold">
+                </div>
+                <div class="flex gap-2 pt-2">
+                    <button type="button" onclick="closeEditEntriModal()"
+                        class="flex-1 py-3 rounded-2xl border border-slate-200 text-slate-700 text-sm font-bold hover:bg-slate-50">
+                        Batal
+                    </button>
+                    <button type="submit"
+                        class="flex-1 py-3 rounded-2xl bg-[#2970a8] text-white text-sm font-bold hover:bg-[#215b8a]">
+                        Simpan Perubahan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ==================== MODAL 3: EDIT MASTER NAMA PACKER/EXPEDISI ==================== -->
+    <div id="edit-master-modal" class="fixed inset-0 bg-black/50 backdrop-blur-[1px] z-50 hidden items-center justify-center p-4" onclick="closeEditMasterModal(event)">
+        <div class="bg-white w-full max-w-md rounded-3xl p-5 shadow-2xl space-y-4" onclick="event.stopPropagation()">
+            <div class="flex items-center justify-between">
+                <h3 id="edit-master-title" class="text-base font-extrabold text-slate-900">Edit Nama</h3>
+                <button type="button" onclick="closeEditMasterModal()" class="p-1.5 rounded-full text-slate-400 hover:bg-slate-100">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <form id="form-edit-master" class="space-y-3.5">
+                <input type="hidden" id="edit-master-type">
+                <input type="hidden" id="edit-master-old-name">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Nama Baru</label>
+                    <input type="text" id="edit-master-new-name" required
+                        class="w-full px-3.5 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-sm font-bold uppercase">
+                    <p class="text-[11px] text-slate-400 mt-1.5">Jika nama ini sudah dipakai di catatan, seluruh catatan terkait akan otomatis ikut diperbarui.</p>
+                </div>
+                <div class="flex gap-2 pt-1">
+                    <button type="button" onclick="closeEditMasterModal()"
+                        class="flex-1 py-3 rounded-2xl border border-slate-200 text-slate-700 text-sm font-bold hover:bg-slate-50">
+                        Batal
+                    </button>
+                    <button type="submit"
+                        class="flex-1 py-3 rounded-2xl bg-[#2970a8] text-white text-sm font-bold hover:bg-[#215b8a]">
+                        Simpan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ==================== MODAL 4: KONFIRMASI HAPUS (Pengganti confirm()) ==================== -->
+    <div id="confirm-modal" class="fixed inset-0 bg-black/50 backdrop-blur-[1px] z-50 hidden items-center justify-center p-4" onclick="closeConfirmModal(event)">
+        <div class="bg-white w-full max-w-sm rounded-3xl p-5 shadow-2xl space-y-4" onclick="event.stopPropagation()">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full bg-red-50 text-red-600 flex items-center justify-center shrink-0">
+                    <i data-lucide="trash-2" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 id="confirm-modal-title" class="text-base font-extrabold text-slate-900">Hapus Data?</h3>
+                    <p id="confirm-modal-desc" class="text-xs text-slate-500 mt-0.5">Tindakan ini tidak dapat dibatalkan.</p>
+                </div>
+            </div>
+            <div class="flex gap-2 pt-1">
+                <button type="button" onclick="closeConfirmModal()"
+                    class="flex-1 py-2.5 rounded-2xl border border-slate-200 text-slate-700 text-sm font-bold hover:bg-slate-50">
+                    Batal
+                </button>
+                <button type="button" id="confirm-modal-yes"
+                    class="flex-1 py-2.5 rounded-2xl bg-red-600 text-white text-sm font-bold hover:bg-red-700">
+                    Ya, Hapus
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== MODAL 5: KODE GOOGLE APPS SCRIPT (Code.gs) ==================== -->
+    <div id="gas-code-modal" class="fixed inset-0 bg-black/50 backdrop-blur-[1px] z-50 hidden items-center justify-center p-4" onclick="closeAppsScriptModal(event)">
+        <div class="bg-white w-full max-w-lg rounded-3xl p-5 shadow-2xl space-y-3.5 max-h-[88vh] flex flex-col" onclick="event.stopPropagation()">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-base font-extrabold text-slate-900">Kode Google Apps Script (Code.gs)</h3>
+                    <p class="text-xs text-slate-500">Tempel di Google Sheet &rarr; Extensions &rarr; Apps Script, lalu Deploy Web App (Anyone)</p>
+                </div>
+                <button type="button" onclick="closeAppsScriptModal()" class="p-1.5 rounded-full text-slate-400 hover:bg-slate-100">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <textarea id="gas-script-code" readonly rows="12"
+                class="w-full p-3.5 rounded-2xl bg-slate-900 text-emerald-300 font-mono text-[11px] leading-relaxed focus:outline-none overflow-auto flex-1"></textarea>
+            <div class="flex gap-2">
+                <button type="button" onclick="closeAppsScriptModal()"
+                    class="flex-1 py-2.5 rounded-2xl border border-slate-200 text-slate-700 text-sm font-bold hover:bg-slate-50 cursor-pointer">
+                    Tutup
+                </button>
+                <button type="button" onclick="copyAppsScriptCode()"
+                    class="flex-1 py-2.5 rounded-2xl bg-[#2970a8] text-white text-sm font-bold hover:bg-[#215b8a] flex items-center justify-center gap-1.5 cursor-pointer">
+                    <i data-lucide="copy" class="w-4 h-4"></i>
+                    <span>Salin Kode Code.gs</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION (Pengganti alert()) -->
+    <div id="toast-container" class="fixed top-20 inset-x-4 z-50 flex flex-col items-center pointer-events-none space-y-2"></div>
+
+    <!-- GOOGLE SHEETS APPS SCRIPT SYNC & APPLICATION LOGIC -->
+    <script>
+        // ==========================================
+        // 1. DATA DEFAULT & TEMPLATE CODE.GS
+        // ==========================================
+        const DEFAULT_PACKERS = ['ARI', 'DIAN', 'JASWIN', 'LUTFI', 'MUGI', 'RISTA'];
+        const DEFAULT_EXPEDISIS = ['ANTERAJA', 'GOTO', 'INSTANT', 'JNE', 'JNT', 'JNT CARGO', 'POS', 'SICEPAT', 'SPX'];
+
+        const GAS_CODE_TEMPLATE = [
+            "function doGet(e) {",
+            "  return handleRequest(e);",
+            "}",
+            "",
+            "function doPost(e) {",
+            "  return handleRequest(e);",
+            "}",
+            "",
+            "function handleRequest(e) {",
+            "  var lock = LockService.getScriptLock();",
+            "  lock.tryLock(10000);",
+            "  try {",
+            "    var ss = SpreadsheetApp.getActiveSpreadsheet();",
+            "    var sheetEntries = getOrCreateSheet(ss, 'Entri', ['id', 'tanggal', 'jam', 'packer', 'expedisi', 'jumlah', 'operator', 'createdAt']);",
+            "    var sheetMaster = getOrCreateSheet(ss, 'Master', ['key', 'value']);",
+            "",
+            "    var payload = {};",
+            "    if (e && e.postData && e.postData.contents) {",
+            "      payload = JSON.parse(e.postData.contents);",
+            "    } else if (e && e.parameter && e.parameter.action) {",
+            "      payload = e.parameter;",
+            "    }",
+            "",
+            "    var action = payload.action || 'getAll';",
+            "",
+            "    if (action === 'upsert') {",
+            "      upsertRow(sheetEntries, payload.data);",
+            "    } else if (action === 'delete') {",
+            "      deleteRowById(sheetEntries, payload.id);",
+            "    } else if (action === 'saveMaster') {",
+            "      saveMasterConfig(sheetMaster, payload.packers, payload.expedisis);",
+            "    } else if (action === 'syncBatch') {",
+            "      if (Array.isArray(payload.ops)) {",
+            "        payload.ops.forEach(function(op) {",
+            "          if (op.type === 'upsert') upsertRow(sheetEntries, op.payload);",
+            "          else if (op.type === 'delete') deleteRowById(sheetEntries, op.docId);",
+            "          else if (op.type === 'master') saveMasterConfig(sheetMaster, op.payload.packers, op.payload.expedisis);",
+            "        });",
+            "      }",
+            "    }",
+            "",
+            "    var allEntries = readAllEntries(sheetEntries);",
+            "    var masterData = readMasterConfig(sheetMaster);",
+            "",
+            "    return ContentService",
+            "      .createTextOutput(JSON.stringify({",
+            "        ok: true,",
+            "        entries: allEntries,",
+            "        packers: masterData.packers,",
+            "        expedisis: masterData.expedisis",
+            "      }))",
+            "      .setMimeType(ContentService.MimeType.JSON);",
+            "  } catch (err) {",
+            "    return ContentService",
+            "      .createTextOutput(JSON.stringify({ ok: false, error: err.toString() }))",
+            "      .setMimeType(ContentService.MimeType.JSON);",
+            "  } finally {",
+            "    lock.releaseLock();",
+            "  }",
+            "}",
+            "",
+            "function getOrCreateSheet(ss, name, headers) {",
+            "  var sheet = ss.getSheetByName(name);",
+            "  if (!sheet) {",
+            "    sheet = ss.insertSheet(name);",
+            "    sheet.appendRow(headers);",
+            "  }",
+            "  return sheet;",
+            "}",
+            "",
+            "function upsertRow(sheet, item) {",
+            "  if (!item || !item.id) return;",
+            "  var data = sheet.getDataRange().getValues();",
+            "  var rowValues = [",
+            "    String(item.id),",
+            "    String(item.tanggal || ''),",
+            "    String(item.jam || ''),",
+            "    String(item.packer || ''),",
+            "    String(item.expedisi || ''),",
+            "    Number(item.jumlah || 0),",
+            "    String(item.operator || ''),",
+            "    Number(item.createdAt || Date.now())",
+            "  ];",
+            "  for (var i = 1; i < data.length; i++) {",
+            "    if (String(data[i][0]) === String(item.id)) {",
+            "      sheet.getRange(i + 1, 1, 1, rowValues.length).setValues([rowValues]);",
+            "      return;",
+            "    }",
+            "  }",
+            "  sheet.appendRow(rowValues);",
+            "}",
+            "",
+            "function deleteRowById(sheet, id) {",
+            "  var data = sheet.getDataRange().getValues();",
+            "  for (var i = data.length - 1; i >= 1; i--) {",
+            "    if (String(data[i][0]) === String(id)) {",
+            "      sheet.deleteRow(i + 1);",
+            "    }",
+            "  }",
+            "}",
+            "",
+            "function saveMasterConfig(sheet, packers, expedisis) {",
+            "  var rows = [",
+            "    ['key', 'value'],",
+            "    ['packers', JSON.stringify(packers || [])],",
+            "    ['expedisis', JSON.stringify(expedisis || [])]",
+            "  ];",
+            "  sheet.clearContents();",
+            "  sheet.getRange(1, 1, rows.length, 2).setValues(rows);",
+            "}",
+            "",
+            "function readAllEntries(sheet) {",
+            "  var data = sheet.getDataRange().getValues();",
+            "  var list = [];",
+            "  for (var i = 1; i < data.length; i++) {",
+            "    if (!data[i][0]) continue;",
+            "    var tgl = data[i][1];",
+            "    if (tgl instanceof Date) {",
+            "      tgl = Utilities.formatDate(tgl, Session.getScriptTimeZone(), 'yyyy-MM-dd');",
+            "    }",
+            "    var jamVal = data[i][2];",
+            "    if (jamVal instanceof Date) {",
+            "      jamVal = Utilities.formatDate(jamVal, Session.getScriptTimeZone(), 'HH:mm');",
+            "    }",
+            "    list.push({",
+            "      id: String(data[i][0]),",
+            "      tanggal: String(tgl),",
+            "      jam: String(jamVal || ''),",
+            "      packer: String(data[i][3] || ''),",
+            "      expedisi: String(data[i][4] || ''),",
+            "      jumlah: Number(data[i][5] || 0),",
+            "      operator: String(data[i][6] || ''),",
+            "      createdAt: Number(data[i][7] || 0)",
+            "    });",
+            "  }",
+            "  return list;",
+            "}",
+            "",
+            "function readMasterConfig(sheet) {",
+            "  var data = sheet.getDataRange().getValues();",
+            "  var res = { packers: null, expedisis: null };",
+            "  for (var i = 1; i < data.length; i++) {",
+            "    if (data[i][0] === 'packers' && data[i][1]) res.packers = JSON.parse(data[i][1]);",
+            "    if (data[i][0] === 'expedisis' && data[i][1]) res.expedisis = JSON.parse(data[i][1]);",
+            "  }",
+            "  return res;",
+            "}"
+        ].join("\n");
+        // 2. PENYIMPANAN LOKAL PERMANEN (INDEXEDDB)
+        // ==========================================
+        const IDB_NAME = 'LogistikHarianGSheetDB_v1';
+        const IDB_STORE = 'app_state';
+        let idbPromise = null;
+
+        function openIDB() {
+            if (idbPromise) return idbPromise;
+            idbPromise = new Promise((resolve, reject) => {
+                const req = indexedDB.open(IDB_NAME, 1);
+                req.onupgradeneeded = (e) => {
+                    const database = e.target.result;
+                    if (!database.objectStoreNames.contains(IDB_STORE)) {
+                        database.createObjectStore(IDB_STORE);
+                    }
+                };
+                req.onsuccess = (e) => resolve(e.target.result);
+                req.onerror = (e) => reject(e.target.error);
+            });
+            return idbPromise;
+        }
+
+        async function idbGet(key) {
+            try {
+                const database = await openIDB();
+                return new Promise((resolve) => {
+                    const tx = database.transaction(IDB_STORE, 'readonly');
+                    const store = tx.objectStore(IDB_STORE);
+                    const req = store.get(key);
+                    req.onsuccess = () => resolve(req.result);
+                    req.onerror = () => resolve(null);
+                });
+            } catch {
+                return null;
+            }
+        }
+
+        async function idbSet(key, value) {
+            try {
+                const database = await openIDB();
+                return new Promise((resolve) => {
+                    const tx = database.transaction(IDB_STORE, 'readwrite');
+                    const store = tx.objectStore(IDB_STORE);
+                    const req = store.put(value, key);
+                    req.onsuccess = () => resolve(true);
+                    req.onerror = () => resolve(false);
+                });
+            } catch {
+                return false;
+            }
+        }
+
+        // ==========================================
+        // 3. STATE APLIKASI
+        // ==========================================
+        let entries = [];
+        let pendingOps = [];
+        let packers = [...DEFAULT_PACKERS];
+        let expedisis = [...DEFAULT_EXPEDISIS];
+        let operatorName = 'Andi';
+        let gasUrl = '';
+        let gasConnected = false;
+        let currentTab = 'entri';
+        let laporanPeriod = 'today';
+        let activeDateISO = '';
+        let currentSelectorType = null;
+        let confirmCallback = null;
+        let isSyncing = false;
+
+        function normalizeDateISO(val) {
+            if (!val) return '';
+            const str = String(val).trim();
+            if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+            if (/^\d{4}-\d{2}-\d{2}T/.test(str)) {
+                const d = new Date(str);
+                if (!isNaN(d.getTime())) {
+                    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                }
+                return str.slice(0, 10);
+            }
+            const slashMatch = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+            if (slashMatch) {
+                const p1 = Number(slashMatch[1]);
+                const p2 = Number(slashMatch[2]);
+                const y = slashMatch[3];
+                const m = p1 > 12 ? p2 : p1;
+                const d = p1 > 12 ? p1 : p2;
+                return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+            }
+            const parsed = new Date(str);
+            if (!isNaN(parsed.getTime())) {
+                return `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, '0')}-${String(parsed.getDate()).padStart(2, '0')}`;
+            }
+            return str;
+        }
+
+        function normalizeTimeHHMM(val, fallbackTimestamp) {
+            if (val !== undefined && val !== null && String(val).trim() !== '') {
+                const str = String(val).trim();
+                // Sudah format HH:mm atau HH:mm:ss
+                const simpleTime = str.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
+                if (simpleTime) {
+                    return `${simpleTime[1].padStart(2, '0')}:${simpleTime[2]}`;
+                }
+                // Jika string mengandung 1899 / GMT (dari sel waktu Google Sheets)
+                if (/1899|GMT/i.test(str)) {
+                    // Prioritaskan timestamp perangkat lokal jika valid (bukan 1899)
+                    if (fallbackTimestamp && Number(fallbackTimestamp) > 946684800000) {
+                        const dtLocal = new Date(Number(fallbackTimestamp));
+                        if (!isNaN(dtLocal.getTime())) return formatTimeHHMM(dtLocal);
+                    }
+                    const gmtTime = str.match(/\b(\d{1,2}):(\d{2}):\d{2}\b/);
+                    if (gmtTime) {
+                        return `${gmtTime[1].padStart(2, '0')}:${gmtTime[2]}`;
+                    }
+                }
+                // Tangani format ISO timestamp sesuai zona waktu HP/Desktop perangkat
+                if (/^\d{4}-\d{2}-\d{2}T/.test(str)) {
+                    const dt = new Date(str);
+                    if (!isNaN(dt.getTime())) {
+                        return formatTimeHHMM(dt);
+                    }
+                }
+                const anyTime = str.match(/\b(\d{1,2}):(\d{2})(?::\d{2})?\b/);
+                if (anyTime) {
+                    return `${anyTime[1].padStart(2, '0')}:${anyTime[2]}`;
+                }
+            }
+            if (fallbackTimestamp && Number(fallbackTimestamp) > 946684800000) {
+                const dt = new Date(Number(fallbackTimestamp));
+                if (!isNaN(dt.getTime())) return formatTimeHHMM(dt);
+            }
+            return '';
+        }
+
+        function getEntryDisplayTime(item) {
+            return normalizeTimeHHMM(item && item.jam, item && item.createdAt);
+        }
+
+        function normalizeEntry(item) {
+            if (!item) return null;
+            const createdAt = Number(item.createdAt || Date.now());
+            return {
+                ...item,
+                id: String(item.id || ''),
+                tanggal: normalizeDateISO(item.tanggal),
+                jam: normalizeTimeHHMM(item.jam, createdAt),
+                packer: String(item.packer || '').toUpperCase(),
+                expedisi: String(item.expedisi || '').toUpperCase(),
+                jumlah: Number(item.jumlah || 0),
+                operator: String(item.operator || 'Operator'),
+                createdAt
+            };
+        }
+
+        async function persistLocalState() {
+            await Promise.all([
+                idbSet('entries', entries),
+                idbSet('pendingOps', pendingOps),
+                idbSet('packers', packers),
+                idbSet('expedisis', expedisis),
+                idbSet('operatorName', operatorName),
+                idbSet('gasUrl', gasUrl),
+                idbSet('gasConnected', gasConnected),
+                idbSet('activeDateISO', activeDateISO)
+            ]);
+            try {
+                localStorage.setItem('lh_entries_backup', JSON.stringify(entries));
+                localStorage.setItem('lh_master_backup', JSON.stringify({ packers, expedisis, operatorName, gasUrl, gasConnected, activeDateISO }));
+            } catch (e) {}
+        }
+
+        async function hydrateLocalState() {
+            let savedEntries = await idbGet('entries');
+            let savedPending = await idbGet('pendingOps');
+            let savedPackers = await idbGet('packers');
+            let savedExpedisis = await idbGet('expedisis');
+            let savedOperator = await idbGet('operatorName');
+            let savedGasUrl = await idbGet('gasUrl');
+            let savedGasConnected = await idbGet('gasConnected');
+            let savedActiveDate = await idbGet('activeDateISO');
+
+            if (!Array.isArray(savedEntries)) {
+                try {
+                    const lsEntries = JSON.parse(localStorage.getItem('lh_entries_backup') || 'null');
+                    if (Array.isArray(lsEntries)) savedEntries = lsEntries;
+                } catch (e) {}
+            }
+            if (!Array.isArray(savedPackers)) {
+                try {
+                    const lsMaster = JSON.parse(localStorage.getItem('lh_master_backup') || 'null');
+                    if (lsMaster) {
+                        savedPackers = lsMaster.packers;
+                        savedExpedisis = lsMaster.expedisis;
+                        savedOperator = lsMaster.operatorName;
+                        savedGasUrl = lsMaster.gasUrl;
+                        savedGasConnected = lsMaster.gasConnected;
+                        savedActiveDate = lsMaster.activeDateISO;
+                    }
+                } catch (e) {}
+            }
+
+            if (Array.isArray(savedEntries)) {
+                entries = savedEntries.map(normalizeEntry).filter(Boolean);
+            }
+            if (Array.isArray(savedPending)) pendingOps = savedPending;
+            if (Array.isArray(savedPackers) && savedPackers.length > 0) packers = savedPackers;
+            if (Array.isArray(savedExpedisis) && savedExpedisis.length > 0) expedisis = savedExpedisis;
+            if (typeof savedOperator === 'string' && savedOperator.trim()) operatorName = savedOperator;
+            if (typeof savedGasUrl === 'string') gasUrl = savedGasUrl;
+            if (typeof savedGasConnected === 'boolean') gasConnected = savedGasConnected;
+            if (typeof savedActiveDate === 'string' && savedActiveDate) {
+                activeDateISO = normalizeDateISO(savedActiveDate);
+            }
+
+            const opInput = document.getElementById('input-operator-name');
+            if (opInput) opInput.value = operatorName;
+            const urlInput = document.getElementById('input-gas-url');
+            if (urlInput) urlInput.value = gasUrl;
+
+            syncDateInputsFromActive();
+            updateCloudStatusUI();
+        }
+
+        // ==========================================
+        // 4. SINKRONISASI GOOGLE SHEETS
+        // ==========================================
+        function updateCloudStatusUI(customMsg) {
+            const dot = document.getElementById('cloud-dot');
+            const text = document.getElementById('cloud-status-text');
+            const badge = document.getElementById('cloud-status-badge');
+            const liveDot = document.getElementById('live-dot');
+            const liveLabel = document.getElementById('live-label');
+            const pendingBadge = document.getElementById('pending-sync-badge');
+
+            if (pendingBadge) {
+                if (pendingOps.length > 0) {
+                    pendingBadge.textContent = `${pendingOps.length} antrean`;
+                    pendingBadge.classList.remove('hidden');
+                } else {
+                    pendingBadge.classList.add('hidden');
+                }
+            }
+
+            if (gasConnected && gasUrl) {
+                if (dot) dot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0';
+                if (text) text.textContent = customMsg || 'Terhubung · data tersimpan di Google Sheets.';
+                if (badge) {
+                    badge.textContent = 'Google Sheets Aktif';
+                    badge.className = 'font-semibold text-emerald-600';
+                }
+                if (liveDot) liveDot.className = 'w-2 h-2 rounded-full bg-emerald-500 animate-pulse';
+                if (liveLabel) liveLabel.textContent = 'Google Sheets';
+            } else {
+                if (dot) dot.className = 'w-2.5 h-2.5 rounded-full bg-slate-400 shrink-0';
+                if (text) text.textContent = customMsg || 'Belum terhubung · data tersimpan lokal di perangkat.';
+                if (badge) {
+                    badge.textContent = 'Mode Lokal';
+                    badge.className = 'font-semibold text-slate-500';
+                }
+                if (liveDot) liveDot.className = 'w-2 h-2 rounded-full bg-slate-400';
+                if (liveLabel) liveLabel.textContent = 'Lokal';
+            }
+        }
+
+        async function enqueueSyncOp(op) {
+            pendingOps = pendingOps.filter(item => !(item.type === op.type && item.docId === op.docId));
+            pendingOps.push({ ...op, queuedAt: Date.now() });
+            await persistLocalState();
+            updateCloudStatusUI();
+            if (gasConnected && gasUrl) {
+                syncFromGoogleSheet(true);
+            }
+        }
+
+        async function syncFromGoogleSheet(silent = false) {
+            if (!gasConnected || !gasUrl || isSyncing) return;
+            isSyncing = true;
+            if (!silent) updateCloudStatusUI('Menyinkronkan dengan Google Sheets...');
+
+            try {
+                const opsSnapshot = [...pendingOps];
+                const bodyPayload = opsSnapshot.length > 0
+                    ? { action: 'syncBatch', ops: opsSnapshot }
+                    : { action: 'getAll' };
+
+                const res = await fetch(gasUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(bodyPayload)
+                });
+                const result = await res.json();
+
+                if (result && result.ok) {
+                    if (opsSnapshot.length > 0) {
+                        const processedKeys = new Set(opsSnapshot.map(o => `${o.type}:${o.docId}:${o.queuedAt}`));
+                        pendingOps = pendingOps.filter(o => !processedKeys.has(`${o.type}:${o.docId}:${o.queuedAt}`));
+                    }
+
+                    if (Array.isArray(result.entries)) {
+                        const pendingUpserts = new Map();
+                        const pendingDeletes = new Set();
+                        pendingOps.forEach(op => {
+                            if (op.type === 'upsert') pendingUpserts.set(op.docId, normalizeEntry(op.payload));
+                            if (op.type === 'delete') pendingDeletes.add(op.docId);
+                        });
+
+                        const mergedMap = new Map();
+                        opsSnapshot.forEach(op => {
+                            if (op.type === 'upsert' && op.payload) {
+                                const norm = normalizeEntry(op.payload);
+                                mergedMap.set(norm.id, norm);
+                            }
+                        });
+                        result.entries.forEach(rawItem => {
+                            const item = normalizeEntry(rawItem);
+                            if (item && item.id && !pendingDeletes.has(item.id)) {
+                                mergedMap.set(item.id, item);
+                            }
+                        });
+                        pendingUpserts.forEach((val, key) => {
+                            if (val) mergedMap.set(key, val);
+                        });
+                        entries = Array.from(mergedMap.values());
+                    }
+
+                    if (Array.isArray(result.packers) && result.packers.length > 0) {
+                        packers = result.packers;
+                    }
+                    if (Array.isArray(result.expedisis) && result.expedisis.length > 0) {
+                        expedisis = result.expedisis;
+                    }
+
+                    await persistLocalState();
+                    const syncTimeEl = document.getElementById('last-sync-time');
+                    if (syncTimeEl) syncTimeEl.textContent = formatTimeHHMM(new Date());
+                    updateCloudStatusUI();
+                    renderAll();
+                    if (!silent) showToast('Sinkronisasi Google Sheets berhasil', 'success');
+                } else {
+                    throw new Error((result && result.error) || 'Respons tidak valid');
+                }
+            } catch (err) {
+                console.error('Sync error:', err);
+                updateCloudStatusUI('Terhubung (offline/menunggu koneksi) · data aman di perangkat.');
+                if (!silent) showToast('Gagal terhubung ke Google Sheets, data tersimpan lokal', 'error');
+            } finally {
+                isSyncing = false;
+            }
+        }
+
+        window.connectGoogleSheet = async function() {
+            const urlInput = document.getElementById('input-gas-url');
+            const val = urlInput ? urlInput.value.trim() : '';
+            if (!val || !val.startsWith('https://script.google.com/')) {
+                showToast('Masukkan URL Web App Google Apps Script yang valid', 'error');
+                return;
+            }
+            gasUrl = val;
+            gasConnected = true;
+            await persistLocalState();
+            updateCloudStatusUI('Menghubungkan ke Google Sheets...');
+            await syncFromGoogleSheet(false);
+        };
+
+        window.disconnectGoogleSheet = async function() {
+            gasConnected = false;
+            await persistLocalState();
+            updateCloudStatusUI('Koneksi diputus · URL tetap tersimpan, mode lokal aktif.');
+            showToast('Koneksi Google Sheets diputus', 'info');
+        };
+
+        window.forceRefreshCloud = async function() {
+            if (!gasConnected || !gasUrl) {
+                showToast('Hubungkan URL Google Apps Script terlebih dahulu', 'error');
+                return;
+            }
+            await syncFromGoogleSheet(false);
+        };
+
+        window.cleanDuplicateEntries = async function() {
+            const seen = new Set();
+            const uniqueList = [];
+            const sorted = [...entries].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+            sorted.forEach(item => {
+                const key = `${item.tanggal}|${item.packer}|${item.expedisi}|${item.jumlah}|${item.jam}`;
+                if (!seen.has(key)) {
+                    seen.add(key);
+                    uniqueList.push(item);
+                } else if (gasConnected && gasUrl) {
+                    enqueueSyncOp({ type: 'delete', docId: item.id });
+                }
+            });
+            const removed = entries.length - uniqueList.length;
+            entries = uniqueList;
+            await persistLocalState();
+            renderAll();
+            showToast(removed > 0 ? `${removed} data duplikat dibersihkan` : 'Tidak ada data duplikat', 'success');
+        };
+
+        window.openAppsScriptModal = function() {
+            const modal = document.getElementById('gas-code-modal');
+            const textarea = document.getElementById('gas-script-code');
+            if (textarea) textarea.value = GAS_CODE_TEMPLATE;
+            if (modal) {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            }
+        };
+
+        window.closeAppsScriptModal = function(e) {
+            if (e && e.target !== e.currentTarget) return;
+            const modal = document.getElementById('gas-code-modal');
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+        };
+
+        window.copyAppsScriptCode = function() {
+            const textarea = document.getElementById('gas-script-code');
+            if (!textarea) return;
+            textarea.select();
+            textarea.setSelectionRange(0, 99999);
+            try {
+                document.execCommand('copy');
+                showToast('Kode Code.gs berhasil disalin!', 'success');
+            } catch (err) {
+                showToast('Gagal menyalin kode', 'error');
+            }
+        };
+
+        // ==========================================
+        // 5. HELPER TANGGAL, FORMAT ANGKA & NOTIFIKASI
+        // ==========================================
+        function getTodayISO() {
+            const now = new Date();
+            const y = now.getFullYear();
+            const m = String(now.getMonth() + 1).padStart(2, '0');
+            const d = String(now.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
+
+        function formatDisplayDate(isoStr) {
+            const norm = normalizeDateISO(isoStr);
+            if (!norm) return '--/--/----';
+            const parts = norm.split('-');
+            if (parts.length !== 3) return norm;
+            return `${parts[2]}/${parts[1]}/${parts[0]}`;
+        }
+
+        function formatShortDayDate(isoStr) {
+            const norm = normalizeDateISO(isoStr);
+            if (!norm) return '-';
+            const days = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+            const [y, m, d] = norm.split('-').map(Number);
+            const dt = new Date(y, m - 1, d);
+            return `${days[dt.getDay()]}, ${String(d).padStart(2, '0')} ${months[m - 1]} ${y}`;
+        }
+
+        function formatHeaderDate(dateObj) {
+            const days = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+            return `${days[dateObj.getDay()]}, ${String(dateObj.getDate()).padStart(2, '0')} ${months[dateObj.getMonth()]} ${dateObj.getFullYear()}`;
+        }
+
+        function formatTimeHHMM(dateObj) {
+            return `${String(dateObj.getHours()).padStart(2, '0')}:${String(dateObj.getMinutes()).padStart(2, '0')}`;
+        }
+
+        function formatNumberID(num) {
+            return Math.round(Number(num || 0)).toLocaleString('id-ID');
+        }
+
+        function formatDecimalID(num) {
+            return Number(num || 0).toLocaleString('id-ID', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+            const toast = document.createElement('div');
+            const bgClass = type === 'success' ? 'bg-slate-900 text-white' : type === 'error' ? 'bg-red-600 text-white' : 'bg-slate-800 text-white';
+            toast.className = `${bgClass} px-4 py-2.5 rounded-2xl shadow-lg text-xs font-bold flex items-center gap-2 pointer-events-auto fade-in`;
+            toast.textContent = message;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transition = 'opacity 0.2s';
+                setTimeout(() => toast.remove(), 220);
+            }, 2500);
+        }
+
+        function syncDateInputsFromActive() {
+            const targetDate = activeDateISO || getTodayISO();
+            const entriEl = document.getElementById('entri-tanggal');
+            const dariEl = document.getElementById('filter-dari');
+            const sampaiEl = document.getElementById('filter-sampai');
+            const lapDariEl = document.getElementById('laporan-dari');
+            const lapSampaiEl = document.getElementById('laporan-sampai');
+
+            if (entriEl && entriEl.value !== targetDate) entriEl.value = targetDate;
+            if (dariEl) dariEl.value = targetDate;
+            if (sampaiEl) sampaiEl.value = targetDate;
+            if (lapDariEl) lapDariEl.value = targetDate;
+            if (lapSampaiEl) lapSampaiEl.value = targetDate;
+        }
+
+        async function setActiveDate(newDateISO) {
+            if (!newDateISO) return;
+            activeDateISO = normalizeDateISO(newDateISO);
+            syncDateInputsFromActive();
+            await persistLocalState();
+            renderAll();
+        }
+
+        // ==========================================
+        // 6. NAVIGASI TAB & FULLSCREEN
+        // ==========================================
+        window.switchTab = function(tabName) {
+            currentTab = tabName;
+            const tabs = ['entri', 'data', 'laporan', 'master'];
+            tabs.forEach(t => {
+                const view = document.getElementById(`view-${t}`);
+                const nav = document.getElementById(`nav-${t}`);
+                if (view) view.classList.toggle('hidden', t !== tabName);
+                if (nav) {
+                    nav.classList.toggle('tab-active', t === tabName);
+                    nav.classList.toggle('tab-inactive', t !== tabName);
+                }
+            });
+            renderAll();
+        };
+
+        window.toggleFullScreen = function() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(() => {});
+            } else if (document.exitFullscreen) {
+                document.exitFullscreen().catch(() => {});
+            }
+        };
+
+        // ==========================================
+        // 7. MODAL SELECTOR PACKER / EXPEDISI
+        // ==========================================
+        window.openSelectorModal = function(type) {
+            currentSelectorType = type;
+            const modal = document.getElementById('selector-modal');
+            const listEl = document.getElementById('selector-modal-list');
+            if (!modal || !listEl) return;
+
+            const currentVal = type === 'packer'
+                ? document.getElementById('entri-packer').value
+                : document.getElementById('entri-expedisi').value;
+
+            const items = type === 'packer'
+                ? [...packers].sort((a, b) => a.localeCompare(b))
+                : [...expedisis].sort((a, b) => a.localeCompare(b));
+
+            const placeholderLabel = type === 'packer' ? '— Pilih Packer —' : '— Pilih Expedisi —';
+
+            let html = `
+                <button type="button" onclick="selectOptionValue('')"
+                    class="w-full px-5 py-4 text-left flex items-center justify-between hover:bg-white/5 transition cursor-pointer">
+                    <span class="text-base font-medium ${currentVal === '' ? 'text-white' : 'text-slate-300'}">${placeholderLabel}</span>
+                    <span class="w-5 h-5 rounded-full border-2 flex items-center justify-center ${currentVal === '' ? 'border-indigo-300' : 'border-slate-500'}">
+                        ${currentVal === '' ? '<span class="w-2.5 h-2.5 rounded-full bg-indigo-300"></span>' : ''}
+                    </span>
+                </button>
+            `;
+
+            items.forEach(name => {
+                const isSelected = currentVal === name;
+                html += `
+                    <button type="button" onclick="selectOptionValue('${name.replace(/'/g, "\\'")}')"
+                        class="w-full px-5 py-4 text-left flex items-center justify-between hover:bg-white/5 transition cursor-pointer">
+                        <span class="text-base font-semibold tracking-wide ${isSelected ? 'text-white' : 'text-slate-200'}">${name}</span>
+                        <span class="w-5 h-5 rounded-full border-2 flex items-center justify-center ${isSelected ? 'border-indigo-300' : 'border-slate-500'}">
+                            ${isSelected ? '<span class="w-2.5 h-2.5 rounded-full bg-indigo-300"></span>' : ''}
+                        </span>
+                    </button>
+                `;
+            });
+
+            listEl.innerHTML = html;
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        };
+
+        window.selectOptionValue = function(val) {
+            if (currentSelectorType === 'packer') {
+                document.getElementById('entri-packer').value = val;
+                document.getElementById('selected-packer-label').textContent = val || '— Pilih Packer —';
+            } else if (currentSelectorType === 'expedisi') {
+                document.getElementById('entri-expedisi').value = val;
+                document.getElementById('selected-expedisi-label').textContent = val || '— Pilih Expedisi —';
+            }
+            closeSelectorModal();
+        };
+
+        window.closeSelectorModal = function(e) {
+            if (e && e.target !== e.currentTarget) return;
+            const modal = document.getElementById('selector-modal');
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+        };
+
+        // ==========================================
+        // 8. CRUD ENTRI RESI
+        // ==========================================
+        document.getElementById('entri-tanggal').addEventListener('change', (e) => {
+            if (e.target.value) setActiveDate(e.target.value);
+        });
+
+        document.getElementById('form-entri').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const tanggal = normalizeDateISO(document.getElementById('entri-tanggal').value || activeDateISO || getTodayISO());
+            const packer = document.getElementById('entri-packer').value.trim();
+            const expedisi = document.getElementById('entri-expedisi').value.trim();
+            const jumlah = parseInt(document.getElementById('entri-jumlah').value, 10);
+
+            if (!packer) {
+                showToast('Silakan pilih Packer terlebih dahulu', 'error');
+                openSelectorModal('packer');
+                return;
+            }
+            if (!expedisi) {
+                showToast('Silakan pilih Expedisi terlebih dahulu', 'error');
+                openSelectorModal('expedisi');
+                return;
+            }
+            if (!jumlah || jumlah <= 0) {
+                showToast('Jumlah resi harus lebih dari 0', 'error');
+                return;
+            }
+
+            const now = new Date();
+            const newEntry = {
+                id: `ent_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+                tanggal,
+                jam: formatTimeHHMM(now),
+                packer,
+                expedisi,
+                jumlah,
+                operator: operatorName || 'Operator',
+                createdAt: now.getTime()
+            };
+
+            activeDateISO = tanggal;
+            entries.unshift(newEntry);
+
+            // Reset input packer, expedisi, dan jumlah resi setelah simpan (tanggal tetap)
+            document.getElementById('entri-packer').value = '';
+            document.getElementById('selected-packer-label').textContent = '— Pilih Packer —';
+            document.getElementById('entri-expedisi').value = '';
+            document.getElementById('selected-expedisi-label').textContent = '— Pilih Expedisi —';
+            document.getElementById('entri-jumlah').value = '';
+
+            syncDateInputsFromActive();
+            renderAll();
+            showToast('Entri resi berhasil disimpan', 'success');
+
+            await enqueueSyncOp({ type: 'upsert', docId: newEntry.id, payload: newEntry });
+        });
+
+        window.openEditEntriModal = function(id) {
+            const item = entries.find(x => x.id === id);
+            if (!item) return;
+
+            document.getElementById('edit-entri-id').value = item.id;
+            document.getElementById('edit-entri-tanggal').value = item.tanggal;
+            document.getElementById('edit-entri-jumlah').value = item.jumlah;
+
+            const packerSel = document.getElementById('edit-entri-packer');
+            const allPackers = Array.from(new Set([...packers, item.packer])).sort();
+            packerSel.innerHTML = allPackers.map(p => `<option value="${p}" ${p === item.packer ? 'selected' : ''}>${p}</option>`).join('');
+
+            const expSel = document.getElementById('edit-entri-expedisi');
+            const allExps = Array.from(new Set([...expedisis, item.expedisi])).sort();
+            expSel.innerHTML = allExps.map(ex => `<option value="${ex}" ${ex === item.expedisi ? 'selected' : ''}>${ex}</option>`).join('');
+
+            const modal = document.getElementById('edit-entri-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        };
+
+        window.closeEditEntriModal = function(e) {
+            if (e && e.target !== e.currentTarget) return;
+            const modal = document.getElementById('edit-entri-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        };
+
+        document.getElementById('form-edit-entri').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('edit-entri-id').value;
+            const idx = entries.findIndex(x => x.id === id);
+            if (idx === -1) return;
+
+            const updated = {
+                ...entries[idx],
+                tanggal: normalizeDateISO(document.getElementById('edit-entri-tanggal').value),
+                packer: document.getElementById('edit-entri-packer').value,
+                expedisi: document.getElementById('edit-entri-expedisi').value,
+                jumlah: parseInt(document.getElementById('edit-entri-jumlah').value, 10) || 1
+            };
+
+            entries[idx] = updated;
+            closeEditEntriModal();
+            renderAll();
+            showToast('Catatan berhasil diperbarui', 'success');
+            await enqueueSyncOp({ type: 'upsert', docId: updated.id, payload: updated });
+        });
+
+        window.deleteEntri = function(id) {
+            openConfirmModal('Hapus Catatan Resi?', 'Catatan yang dihapus tidak dapat dikembalikan.', async () => {
+                entries = entries.filter(x => x.id !== id);
+                renderAll();
+                showToast('Catatan berhasil dihapus', 'info');
+                await enqueueSyncOp({ type: 'delete', docId: id });
+            });
+        };
+
+        // ==========================================
+        // 9. RENDER TAB ENTRI, DATA, LAPORAN, MASTER
+        // ==========================================
+        function renderEntriTab() {
+            const targetDate = normalizeDateISO(document.getElementById('entri-tanggal').value || activeDateISO || getTodayISO());
+            const dispDate = formatDisplayDate(targetDate);
+
+            const dailyEntries = entries
+                .filter(item => item.tanggal === targetDate)
+                .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
+            const totalResi = dailyEntries.reduce((sum, x) => sum + Number(x.jumlah || 0), 0);
+            const countEntri = dailyEntries.length;
+            const avgResi = countEntri > 0 ? totalResi / countEntri : 0;
+
+            document.getElementById('stat-entri-total').textContent = formatNumberID(totalResi);
+            document.getElementById('stat-entri-count').textContent = formatNumberID(countEntri);
+            document.getElementById('stat-entri-avg').textContent = formatDecimalID(avgResi);
+
+            document.getElementById('stat-entri-date-1').textContent = dispDate;
+            document.getElementById('stat-entri-date-2').textContent = `· ${dispDate}`;
+            document.getElementById('stat-entri-date-3').textContent = dispDate;
+            document.getElementById('list-entri-title').textContent = `ENTRI · ${dispDate}`;
+
+            const listEl = document.getElementById('entri-daily-list');
+            if (dailyEntries.length === 0) {
+                listEl.innerHTML = `<div class="py-6 text-center text-sm text-slate-400">Belum ada entri untuk tanggal ${dispDate}.</div>`;
+                return;
+            }
+
+            const pendingIds = new Set(pendingOps.filter(o => o.type === 'upsert').map(o => o.docId));
+            listEl.innerHTML = dailyEntries.map(item => `
+                <div class="py-3 flex items-center justify-between gap-3">
+                    <div>
+                        <div class="text-sm font-extrabold text-slate-900 flex items-center gap-1.5">
+                            <span>${item.packer} · ${item.expedisi}</span>
+                            ${pendingIds.has(item.id) ? '<span title="Menunggu sinkronisasi" class="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block"></span>' : ''}
+                        </div>
+                        <div class="text-xs text-slate-400 mt-0.5">${dispDate} ${getEntryDisplayTime(item)} · oleh ${item.operator || 'Operator'}</div>
+                    </div>
+                    <div class="text-base font-extrabold text-[#2970a8] shrink-0">${formatNumberID(item.jumlah)}</div>
+                </div>
+            `).join('');
+        }
+
+        function getFilteredDataEntries() {
+            const dari = normalizeDateISO(document.getElementById('filter-dari').value);
+            const sampai = normalizeDateISO(document.getElementById('filter-sampai').value);
+            const packerFilter = document.getElementById('filter-packer').value;
+            const expFilter = document.getElementById('filter-expedisi').value;
+
+            return entries
+                .filter(item => {
+                    if (dari && item.tanggal < dari) return false;
+                    if (sampai && item.tanggal > sampai) return false;
+                    if (packerFilter && item.packer !== packerFilter) return false;
+                    if (expFilter && item.expedisi !== expFilter) return false;
+                    return true;
+                })
+                .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+        }
+
+        window.renderDataTab = function() {
+            const packerSel = document.getElementById('filter-packer');
+            const expSel = document.getElementById('filter-expedisi');
+            const prevPacker = packerSel.value;
+            const prevExp = expSel.value;
+
+            const sortedPackers = [...packers].sort();
+            const sortedExps = [...expedisis].sort();
+
+            packerSel.innerHTML = `<option value="">— Semua Packer —</option>` +
+                sortedPackers.map(p => `<option value="${p}" ${p === prevPacker ? 'selected' : ''}>${p}</option>`).join('');
+            expSel.innerHTML = `<option value="">— Semua Expedisi —</option>` +
+                sortedExps.map(ex => `<option value="${ex}" ${ex === prevExp ? 'selected' : ''}>${ex}</option>`).join('');
+
+            const filtered = getFilteredDataEntries();
+            const dariVal = document.getElementById('filter-dari').value;
+            const sampaiVal = document.getElementById('filter-sampai').value;
+            const dateInfo = dariVal === sampaiVal
+                ? formatDisplayDate(dariVal)
+                : `${formatDisplayDate(dariVal)} – ${formatDisplayDate(sampaiVal)}`;
+
+            document.getElementById('data-count-label').textContent = `CATATAN (${filtered.length}) dari ${entries.length} · ${dateInfo}`;
+
+            const listEl = document.getElementById('data-filtered-list');
+            if (filtered.length === 0) {
+                listEl.innerHTML = `<div class="py-8 text-center text-sm text-slate-400">Tidak ada catatan pada tanggal ${dateInfo}.</div>`;
+                return;
+            }
+
+            listEl.innerHTML = filtered.map(item => `
+                <div class="py-3.5 flex items-center justify-between gap-2.5">
+                    <div class="min-w-0">
+                        <div class="text-sm font-extrabold text-slate-900 truncate">${item.packer} · ${item.expedisi}</div>
+                        <div class="text-xs text-slate-400 mt-0.5">${formatShortDayDate(item.tanggal)} · ${getEntryDisplayTime(item)} · oleh ${item.operator || 'Operator'}</div>
+                    </div>
+                    <div class="flex items-center gap-2 shrink-0">
+                        <span class="text-sm font-extrabold text-[#2970a8] mr-1">${formatNumberID(item.jumlah)}</span>
+                        <button type="button" onclick="openEditEntriModal('${item.id}')" title="Edit"
+                            class="w-9 h-9 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 flex items-center justify-center cursor-pointer">
+                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                        </button>
+                        <button type="button" onclick="deleteEntri('${item.id}')" title="Hapus"
+                            class="w-9 h-9 rounded-xl border border-slate-200 text-slate-500 hover:text-red-600 hover:bg-red-50 flex items-center justify-center cursor-pointer">
+                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        };
+
+        window.setLaporanPeriod = function(period) {
+            laporanPeriod = period;
+            document.querySelectorAll('.period-btn').forEach(btn => {
+                const isSelected = btn.getAttribute('data-period') === period;
+                btn.className = isSelected
+                    ? 'period-btn px-4 py-2 rounded-full text-xs font-bold border border-[#2970a8] text-white bg-[#2970a8] transition cursor-pointer'
+                    : 'period-btn px-4 py-2 rounded-full text-xs font-bold border border-slate-200 text-slate-700 bg-white transition cursor-pointer';
+            });
+            const customRange = document.getElementById('laporan-custom-range');
+            if (customRange) customRange.classList.toggle('hidden', period !== 'custom');
+            renderLaporanTab();
+        };
+
+        function getLaporanRange() {
+            const baseStr = activeDateISO || getTodayISO();
+            const [y, m, d] = baseStr.split('-').map(Number);
+            const baseDate = new Date(y, m - 1, d);
+            const toISO = (dt) => `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+
+            if (laporanPeriod === 'today') {
+                return { start: baseStr, end: baseStr };
+            }
+            if (laporanPeriod === '7days') {
+                const startDt = new Date(baseDate);
+                startDt.setDate(baseDate.getDate() - 6);
+                return { start: toISO(startDt), end: baseStr };
+            }
+            if (laporanPeriod === 'thisWeek') {
+                const startDt = new Date(baseDate);
+                const day = startDt.getDay();
+                const diff = day === 0 ? 6 : day - 1;
+                startDt.setDate(baseDate.getDate() - diff);
+                return { start: toISO(startDt), end: baseStr };
+            }
+            if (laporanPeriod === 'thisMonth') {
+                const startDt = new Date(y, m - 1, 1);
+                return { start: toISO(startDt), end: baseStr };
+            }
+            const cDari = normalizeDateISO(document.getElementById('laporan-dari').value) || baseStr;
+            const cSampai = normalizeDateISO(document.getElementById('laporan-sampai').value) || baseStr;
+            return { start: cDari, end: cSampai };
+        }
+
+        window.renderLaporanTab = function() {
+            const { start, end } = getLaporanRange();
+            const badgeEl = document.getElementById('laporan-active-date-badge');
+            if (badgeEl) {
+                badgeEl.textContent = start === end
+                    ? formatDisplayDate(start)
+                    : `${formatDisplayDate(start)} – ${formatDisplayDate(end)}`;
+            }
+
+            const periodEntries = entries.filter(item => item.tanggal >= start && item.tanggal <= end);
+            const totalResi = periodEntries.reduce((sum, x) => sum + Number(x.jumlah || 0), 0);
+            const countEntri = periodEntries.length;
+            const avgResi = countEntri > 0 ? totalResi / countEntri : 0;
+
+            document.getElementById('lap-total-resi').textContent = formatNumberID(totalResi);
+            document.getElementById('lap-total-entri').textContent = formatNumberID(countEntri);
+            document.getElementById('lap-rata-entri').textContent = formatDecimalID(avgResi);
+
+            const expMap = new Map();
+            const packerMap = new Map();
+            periodEntries.forEach(item => {
+                expMap.set(item.expedisi, (expMap.get(item.expedisi) || 0) + Number(item.jumlah || 0));
+                packerMap.set(item.packer, (packerMap.get(item.packer) || 0) + Number(item.jumlah || 0));
+            });
+
+            renderHorizontalChart('chart-expedisi', expMap, '#2970a8');
+            renderHorizontalChart('chart-packer', packerMap, '#c85a32');
+        };
+
+        function renderHorizontalChart(containerId, dataMap, barColor) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+
+            const sorted = Array.from(dataMap.entries()).sort((a, b) => b[1] - a[1]);
+            if (sorted.length === 0) {
+                container.innerHTML = `<div class="text-sm text-slate-400 text-center py-4">Belum ada data pada periode ini.</div>`;
+                return;
+            }
+
+            const maxVal = sorted[0][1] || 1;
+            container.innerHTML = sorted.map(([name, val]) => {
+                const pct = Math.max(2, Math.round((val / maxVal) * 100));
+                return `
+                    <div>
+                        <div class="flex items-center justify-between text-xs font-extrabold mb-1.5">
+                            <span class="text-slate-800">${name}</span>
+                            <span style="color:${barColor}">${formatNumberID(val)} resi</span>
+                        </div>
+                        <div class="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                            <div class="h-full rounded-full transition-all duration-300" style="width:${pct}%; background-color:${barColor}"></div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // ==========================================
+        // 10. MASTER DATA & EKSPOR CSV
+        // ==========================================
+        window.saveOperatorName = async function() {
+            const val = document.getElementById('input-operator-name').value.trim();
+            if (!val) {
+                showToast('Nama operator tidak boleh kosong', 'error');
+                return;
+            }
+            operatorName = val;
+            await persistLocalState();
+            showToast('Nama operator berhasil disimpan', 'success');
+        };
+
+        window.addMasterItem = async function(e, type) {
+            e.preventDefault();
+            const inputEl = document.getElementById(type === 'packer' ? 'new-packer-input' : 'new-expedisi-input');
+            const val = inputEl.value.trim().toUpperCase();
+            if (!val) return;
+
+            const list = type === 'packer' ? packers : expedisis;
+            if (list.includes(val)) {
+                showToast(`${val} sudah ada di daftar`, 'error');
+                return;
+            }
+
+            list.push(val);
+            list.sort((a, b) => a.localeCompare(b));
+            inputEl.value = '';
+            await persistLocalState();
+            renderAll();
+            showToast(`${val} ditambahkan`, 'success');
+            await enqueueSyncOp({ type: 'master', docId: 'config', payload: { packers, expedisis } });
+        };
+
+        window.openEditMasterModal = function(type, oldName) {
+            document.getElementById('edit-master-type').value = type;
+            document.getElementById('edit-master-old-name').value = oldName;
+            document.getElementById('edit-master-new-name').value = oldName;
+            document.getElementById('edit-master-title').textContent = type === 'packer' ? 'Edit Nama Packer' : 'Edit Nama Expedisi';
+
+            const modal = document.getElementById('edit-master-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        };
+
+        window.closeEditMasterModal = function(e) {
+            if (e && e.target !== e.currentTarget) return;
+            const modal = document.getElementById('edit-master-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        };
+
+        document.getElementById('form-edit-master').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const type = document.getElementById('edit-master-type').value;
+            const oldName = document.getElementById('edit-master-old-name').value;
+            const newName = document.getElementById('edit-master-new-name').value.trim().toUpperCase();
+
+            if (!newName || newName === oldName) {
+                closeEditMasterModal();
+                return;
+            }
+
+            const list = type === 'packer' ? packers : expedisis;
+            if (list.includes(newName)) {
+                showToast(`${newName} sudah ada di daftar`, 'error');
+                return;
+            }
+
+            const idx = list.indexOf(oldName);
+            if (idx !== -1) list[idx] = newName;
+            list.sort((a, b) => a.localeCompare(b));
+
+            entries.forEach(item => {
+                if (type === 'packer' && item.packer === oldName) {
+                    item.packer = newName;
+                    enqueueSyncOp({ type: 'upsert', docId: item.id, payload: item });
+                } else if (type === 'expedisi' && item.expedisi === oldName) {
+                    item.expedisi = newName;
+                    enqueueSyncOp({ type: 'upsert', docId: item.id, payload: item });
+                }
+            });
+
+            closeEditMasterModal();
+            await persistLocalState();
+            renderAll();
+            showToast('Nama berhasil diubah', 'success');
+            await enqueueSyncOp({ type: 'master', docId: 'config', payload: { packers, expedisis } });
+        });
+
+        window.deleteMasterItem = function(type, name) {
+            const isUsed = entries.some(x => (type === 'packer' ? x.packer === name : x.expedisi === name));
+            if (isUsed) {
+                showToast('Item sudah dipakai di catatan, gunakan tombol edit', 'error');
+                return;
+            }
+
+            openConfirmModal(`Hapus ${name}?`, 'Item akan dihapus dari daftar master.', async () => {
+                if (type === 'packer') {
+                    packers = packers.filter(p => p !== name);
+                } else {
+                    expedisis = expedisis.filter(ex => ex !== name);
+                }
+                await persistLocalState();
+                renderAll();
+                showToast(`${name} dihapus`, 'info');
+                await enqueueSyncOp({ type: 'master', docId: 'config', payload: { packers, expedisis } });
+            });
+        };
+
+        function renderMasterTab() {
+            const sortedPackers = [...packers].sort((a, b) => a.localeCompare(b));
+            const sortedExps = [...expedisis].sort((a, b) => a.localeCompare(b));
+            const usedPackers = new Set(entries.map(x => x.packer));
+            const usedExps = new Set(entries.map(x => x.expedisi));
+
+            document.getElementById('master-packer-count').textContent = sortedPackers.length;
+            document.getElementById('master-expedisi-count').textContent = sortedExps.length;
+
+            document.getElementById('master-packer-list').innerHTML = sortedPackers.map(name => {
+                const used = usedPackers.has(name);
+                return `
+                    <div class="py-3 flex items-center justify-between gap-2">
+                        <div class="flex items-center gap-2">
+                            <span class="text-sm font-extrabold text-slate-800">${name}</span>
+                            ${used ? '<span class="px-2 py-0.5 rounded-full bg-blue-50 text-[#2970a8] text-[11px] font-bold">terpakai</span>' : ''}
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <button type="button" onclick="openEditMasterModal('packer', '${name.replace(/'/g, "\\'")}')"
+                                class="w-9 h-9 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 flex items-center justify-center cursor-pointer">
+                                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                            </button>
+                            <button type="button" onclick="deleteMasterItem('packer', '${name.replace(/'/g, "\\'")}')"
+                                class="w-9 h-9 rounded-xl border border-slate-200 ${used ? 'text-slate-300 cursor-not-allowed' : 'text-slate-500 hover:text-red-600 hover:bg-red-50 cursor-pointer'} flex items-center justify-center">
+                                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            document.getElementById('master-expedisi-list').innerHTML = sortedExps.map(name => {
+                const used = usedExps.has(name);
+                return `
+                    <div class="py-3 flex items-center justify-between gap-2">
+                        <div class="flex items-center gap-2">
+                            <span class="text-sm font-extrabold text-slate-800">${name}</span>
+                            ${used ? '<span class="px-2 py-0.5 rounded-full bg-blue-50 text-[#2970a8] text-[11px] font-bold">terpakai</span>' : ''}
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <button type="button" onclick="openEditMasterModal('expedisi', '${name.replace(/'/g, "\\'")}')"
+                                class="w-9 h-9 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 flex items-center justify-center cursor-pointer">
+                                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                            </button>
+                            <button type="button" onclick="deleteMasterItem('expedisi', '${name.replace(/'/g, "\\'")}')"
+                                class="w-9 h-9 rounded-xl border border-slate-200 ${used ? 'text-slate-300 cursor-not-allowed' : 'text-slate-500 hover:text-red-600 hover:bg-red-50 cursor-pointer'} flex items-center justify-center">
+                                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function downloadCSVFile(filename, rows) {
+            const csvContent = rows.map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+        }
+
+        window.exportDataCSV = function() {
+            const filtered = getFilteredDataEntries();
+            if (filtered.length === 0) {
+                showToast('Tidak ada data untuk diekspor', 'error');
+                return;
+            }
+            const rows = [
+                ['Tanggal', 'Jam', 'Packer', 'Expedisi', 'Jumlah Resi', 'Operator'],
+                ...filtered.map(x => [x.tanggal, x.jam, x.packer, x.expedisi, x.jumlah, x.operator])
+            ];
+            downloadCSVFile(`logistik-data-${activeDateISO || getTodayISO()}.csv`, rows);
+            showToast('CSV berhasil diunduh', 'success');
+        };
+
+        window.exportLaporanCSV = function() {
+            const { start, end } = getLaporanRange();
+            const periodEntries = entries.filter(item => item.tanggal >= start && item.tanggal <= end);
+            if (periodEntries.length === 0) {
+                showToast('Tidak ada data laporan pada periode ini', 'error');
+                return;
+            }
+            const rows = [
+                ['Tanggal', 'Jam', 'Packer', 'Expedisi', 'Jumlah Resi', 'Operator'],
+                ...periodEntries.map(x => [x.tanggal, x.jam, x.packer, x.expedisi, x.jumlah, x.operator])
+            ];
+            downloadCSVFile(`laporan-logistik-${start}_sd_${end}.csv`, rows);
+            showToast('Laporan CSV berhasil diunduh', 'success');
+        };
+
+        function openConfirmModal(title, desc, onYes) {
+            document.getElementById('confirm-modal-title').textContent = title;
+            document.getElementById('confirm-modal-desc').textContent = desc;
+            confirmCallback = onYes;
+            const modal = document.getElementById('confirm-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        window.closeConfirmModal = function(e) {
+            if (e && e.target !== e.currentTarget) return;
+            const modal = document.getElementById('confirm-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            confirmCallback = null;
+        };
+
+        document.getElementById('confirm-modal-yes').addEventListener('click', async () => {
+            const cb = confirmCallback;
+            closeConfirmModal();
+            if (cb) await cb();
+        });
+
+        function renderAll() {
+            renderEntriTab();
+            renderDataTab();
+            renderLaporanTab();
+            renderMasterTab();
+        }
+
+        // ==========================================
+        // 11. INISIALISASI APLIKASI
+        // ==========================================
+        function initAppImmediate() {
+            const today = getTodayISO();
+            if (!activeDateISO) activeDateISO = today;
+            const headerBadge = document.getElementById('header-date-badge');
+            if (headerBadge) headerBadge.textContent = formatHeaderDate(new Date());
+            const ids = ['entri-tanggal', 'filter-dari', 'filter-sampai', 'laporan-dari', 'laporan-sampai'];
+            ids.forEach(id => {
+                const el = document.getElementById(id);
+                if (el && !el.value) el.value = activeDateISO;
+            });
+            setLaporanPeriod('today');
+            renderAll();
+        }
+
+        setInterval(() => {
+            if (gasConnected && gasUrl && !document.hidden) {
+                syncFromGoogleSheet(true);
+            }
+        }, 15000);
+
+        window.addEventListener('online', () => {
+            if (gasConnected && gasUrl) {
+                syncFromGoogleSheet(true);
+            }
+        });
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', async () => {
+                initAppImmediate();
+                await hydrateLocalState();
+                renderAll();
+                if (gasConnected && gasUrl) {
+                    syncFromGoogleSheet(true);
+                }
+            });
+        } else {
+            (async () => {
+                initAppImmediate();
+                await hydrateLocalState();
+                renderAll();
+                if (gasConnected && gasUrl) {
+                    syncFromGoogleSheet(true);
+                }
+            })();
+        }
+    </script>
+</body>
+</html>
